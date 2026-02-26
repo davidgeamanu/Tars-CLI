@@ -1,11 +1,11 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="icarus",
     version="2.0.0",
-    py_modules=["icarus"],
+    packages=find_packages(),
     install_requires=["rich>=13.0"],
     entry_points={
-        "console_scripts": ["icarus=icarus:main"],
+        "console_scripts": ["icarus=icarus.cli:main"],
     },
 )
