@@ -89,38 +89,64 @@
 #### 1. Install pipx (if you don't have it)
 
 ```bash
-  pip install pipx
-  pipx ensurepath
+pip install pipx
+pipx ensurepath
 ```
 
-Restart your terminal after running `ensurepath`.
+> **Restart your terminal** after running `ensurepath` so the new PATH takes effect.
 
-#### 2. Install ICARUS
+#### 2. Clone or download ICARUS
 
 ```bash
-  pipx install path/to/icarus
+git clone https://github.com/your-username/icarus.git
+cd icarus
 ```
 
-Or in editable mode while developing:
+Or if you already have the folder, just `cd` into it:
 
 ```bash
-  pipx install path/to/icarus --editable
+cd C:\Projects\Icarus        # Windows
+# cd ~/Projects/Icarus       # macOS / Linux
 ```
 
-#### 3. Run
+#### 3. Install with pipx
+
+From **inside the ICARUS folder**, run:
 
 ```bash
-  icarus
+pipx install .
 ```
 
-Type `icarus` from any folder. No virtual environment activation required.
+This installs the `icarus` command globally so it is available in every terminal, in every folder — no virtual environment activation needed.
+
+For editable mode (changes to the source take effect immediately):
+
+```bash
+pipx install . --editable
+```
+
+#### 4. Verify the install
+
+```bash
+icarus --help
+```
+
+If the command is found, you're done.
+
+#### 5. Run
+
+```bash
+icarus
+```
+
+Type `icarus` from **any folder** — it always reads the git repo in your current working directory.
 
 ---
 
 ### Updating after edits
 
 ```bash
-  pipx reinstall icarus
+pipx reinstall icarus
 ```
 
 ---

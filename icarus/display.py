@@ -7,7 +7,7 @@ from rich.text import Text
 from .theme import console, PRIMARY, DIM, OK, WARN, ERR
 from .git import RepoState
 
-# ── banner ─────────────────────────────────────────────────────────────────────
+# banner
 
 BANNER = r"""
 ██╗ ██████╗ █████╗ ██████╗ ██╗   ██╗███████╗
@@ -21,7 +21,7 @@ BANNER = r"""
 
 def show_banner() -> None:
     console.print()
-    console.print(Align.center(Text(BANNER, style="bold cyan")))
+    console.print(Align.center(Text(BANNER, style="bold deep_sky_blue1")))
     console.print(Align.center(Text(
         "Smart Git  •  Safe Commands  •  No Wings Melted",
         style=DIM,
@@ -29,7 +29,7 @@ def show_banner() -> None:
     console.print()
 
 
-# ── status panels ──────────────────────────────────────────────────────────────
+# status panels
 
 def make_repo_panel(st: RepoState) -> Panel:
     if st.error:
