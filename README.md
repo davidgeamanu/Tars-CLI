@@ -139,7 +139,7 @@ If the command is found, you're done.
 icarus
 ```
 
-Type `icarus` from **any folder** — it always reads the git repo in your current working directory.
+Type `icarus` from **any folder**, it always reads the git repo in your current working directory.
 
 ---
 
@@ -255,8 +255,8 @@ icarus/
 ├── cookbook.py       — COOKBOOK data + menu/section display functions
 ├── repl.py           — REPL loop, command dispatch, show_help()
 └── cli.py            — main() entry point, UTF-8 setup
-icarus.py             — shim so `python icarus.py` still works
-setup.py              — package config and `icarus` console script
+icarus.py             — shim so 'python icarus.py' still works
+setup.py              — package config and 'icarus' console script
 .gitignore
 ```
 
