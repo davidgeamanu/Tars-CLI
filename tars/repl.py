@@ -134,7 +134,7 @@ def repl(st: RepoState) -> None:
                 except ValueError:
                     console.print(f"[{ERR}]Usage: cookbook <number> | cookbook all[/{ERR}]")
 
-        # bare number → cookbook shortcut
+        # bare number -> cookbook shortcut
         elif cmd.isdigit():
             show_cookbook_section(int(cmd))
 

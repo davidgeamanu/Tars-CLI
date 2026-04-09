@@ -34,7 +34,7 @@ def _to_https(url: str) -> str:
     if url.startswith("https://"):
         return url.removesuffix(".git")
     if url.startswith("git@"):
-        # git@github.com:user/repo.git  →  https://github.com/user/repo
+        # git@github.com:user/repo.git  ->  https://github.com/user/repo
         url = url[4:]
         if ":" in url:
             host, path = url.split(":", 1)
