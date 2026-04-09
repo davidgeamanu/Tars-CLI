@@ -13,7 +13,6 @@
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 
-*Humor: 75%  •  Honesty: 90%  •  Git: 100%*
 
 [Features](#features) •
 [Getting Started](#getting-started) •
