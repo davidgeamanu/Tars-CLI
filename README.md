@@ -1,19 +1,19 @@
 <div align="center">
 
 ```
-                                ██╗ ██████╗ █████╗ ██████╗ ██╗   ██╗███████╗
-                                ██║██╔════╝██╔══██╗██╔══██╗██║   ██║██╔════╝
-                                ██║██║     ███████║██████╔╝██║   ██║███████╗
-                                ██║██║     ██╔══██║██╔══██╗██║   ██║╚════██║
-                                ██║╚██████╗██║  ██║██║  ██║╚██████╔╝███████║
-                                ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝
+                        ████████╗ █████╗ ██████╗ ███████╗
+                        ╚══██╔══╝██╔══██╗██╔══██╗██╔════╝
+                           ██║   ███████║██████╔╝███████╗
+                           ██║   ██╔══██║██╔══██╗╚════██║
+                           ██║   ██║  ██║██║  ██║███████║
+                           ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝
 ```
 
 ### A REPL-style CLI git assistant that keeps you oriented in any repository.
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 
-*Banner • repo status • suggestions • git cookbook*
+*Humor: 75%  •  Honesty: 90%  •  Git: 100%*
 
 [Features](#features) •
 [Getting Started](#getting-started) •
@@ -35,15 +35,15 @@
 ### Startup
 - **ASCII banner** with current working directory
 - **Live repo spinner** while git is queried
-- **Status panel** — branch, clean/dirty, staged / unstaged / untracked counts, remote URL, sync info, last commit
-- **Suggestions panel** — context-aware next steps shown side-by-side
+- **Status panel** showing branch, clean/dirty, staged / unstaged / untracked counts, remote URL, sync info, last commit
+- **Suggestions panel** with context-aware next steps shown side-by-side
 
 </td>
 <td width="50%">
 
 ### REPL Prompt
-- Persistent session — stays open until you type `q`
-- Prompt shows active branch: `icarus (main) >`
+- Persistent session that stays open until you type `q`
+- Prompt shows active branch: `tars (main) >`
 - Built-in shortcuts for the most common git operations
 - Full git pass-through for everything else
 
@@ -95,29 +95,29 @@ pipx ensurepath
 
 > **Restart your terminal** after running `ensurepath` so the new PATH takes effect.
 
-#### 2. Clone or download ICARUS
+#### 2. Clone or download TARS
 
 ```bash
-git clone https://github.com/your-username/icarus.git
-cd icarus
+git clone https://github.com/your-username/tars.git
+cd tars
 ```
 
 Or if you already have the folder, just `cd` into it:
 
 ```bash
-cd C:\Projects\Icarus        # Windows
-# cd ~/Projects/Icarus       # macOS / Linux
+cd path\to\tars        # Windows
+# cd path/to/tars      # macOS / Linux
 ```
 
 #### 3. Install with pipx
 
-From **inside the ICARUS folder**, run:
+From **inside the TARS folder**, run:
 
 ```bash
 pipx install .
 ```
 
-This installs the `icarus` command globally so it is available in every terminal, in every folder — no virtual environment activation needed.
+This installs the `tars` command globally so it is available in every terminal, in every folder — no virtual environment activation needed.
 
 For editable mode (changes to the source take effect immediately):
 
@@ -128,7 +128,7 @@ pipx install . --editable
 #### 4. Verify the install
 
 ```bash
-icarus --help
+tars --help
 ```
 
 If the command is found, you're done.
@@ -136,17 +136,17 @@ If the command is found, you're done.
 #### 5. Run
 
 ```bash
-icarus
+tars
 ```
 
-Type `icarus` from **any folder**, it always reads the git repo in your current working directory.
+Type `tars` from **any folder**, it always reads the git repo in your current working directory.
 
 ---
 
 ### Updating after edits
 
 ```bash
-pipx reinstall icarus
+pipx reinstall tars
 ```
 
 ---
@@ -155,7 +155,7 @@ pipx reinstall icarus
 
 ### Startup
 
-Navigate to any folder and run `icarus`. You'll see:
+Navigate to any folder and run `tars`. You'll see:
 
 1. ASCII banner + current working directory
 2. Spinner while the repo is checked
@@ -182,7 +182,7 @@ Navigate to any folder and run `icarus`. You'll see:
 | `git <args>` | | Pass any git command through directly |
 | `clear` | | Clear the screen |
 | `help` | `?` | Show command reference |
-| `quit` | `q` / `exit` | Exit ICARUS |
+| `quit` | `q` / `exit` | Exit TARS |
 
 ---
 
@@ -230,7 +230,7 @@ Each section is a two-column table of commands and plain-English descriptions. S
 
 ### Colours
 
-All colours are defined at the top of `icarus/theme.py`:
+All colours are defined at the top of `tars/theme.py`:
 
 ```python
 PRIMARY = "cyan"    # panels, borders, banner
@@ -240,14 +240,14 @@ WARN    = "yellow"  # DIRTY status
 ERR     = "red"     # errors, not-a-repo panel
 ```
 
-Rich accepts named colours (`"magenta"`), hex (`"#a855f7"`), or RGB (`"rgb(100,200,255)"`). Change the values and run `pipx reinstall icarus`.
+Rich accepts named colours (`"magenta"`), hex (`"#a855f7"`), or RGB (`"rgb(100,200,255)"`). Change the values and run `pipx reinstall tars`.
 
 ---
 
 ## Project Structure
 
 ```
-icarus/
+tars/
 ├── __init__.py       — package marker
 ├── theme.py          — console instance + colour constants
 ├── git.py            — RepoState dataclass, detect_repo(), git helpers
@@ -255,8 +255,8 @@ icarus/
 ├── cookbook.py       — COOKBOOK data + menu/section display functions
 ├── repl.py           — REPL loop, command dispatch, show_help()
 └── cli.py            — main() entry point, UTF-8 setup
-icarus.py             — shim so 'python icarus.py' still works
-setup.py              — package config and 'icarus' console script
+tars.py               — shim so 'python tars.py' still works
+setup.py              — package config and 'tars' console script
 .gitignore
 ```
 
@@ -269,4 +269,3 @@ setup.py              — package config and 'icarus' console script
 ---
 
 </div>
-

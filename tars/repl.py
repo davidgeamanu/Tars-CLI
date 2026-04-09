@@ -30,14 +30,14 @@ def show_help() -> None:
     t.add_row("git",           "<args>",     "Pass any git command through directly")
     t.add_row("clear",         "",           "Clear the screen")
     t.add_row("help",          "?",          "Show this help")
-    t.add_row("quit",          "q / exit",   "Exit ICARUS")
+    t.add_row("quit",          "q / exit",   "Exit TARS")
 
     console.print(Panel(t, title="Commands", border_style=PRIMARY))
 
 
 def _prompt(st: RepoState | None) -> str:
     branch = f" ({st.branch})" if (st and not st.error and st.branch) else ""
-    return f"icarus{branch} > "
+    return f"tars{branch} > "
 
 
 def run_passthrough(cmd: list[str], cwd: str | None) -> None:
@@ -56,7 +56,7 @@ def repl(st: RepoState) -> None:
             raw = input(_prompt(st)).strip()
         except (EOFError, KeyboardInterrupt):
             console.print()
-            console.print("[bold cyan]Goodbye. Don't fly too close to the sun.[/bold cyan]")
+            console.print("[bold cyan]Goodbye. Stay on the right side of the event horizon.[/bold cyan]")
             break
 
         if not raw:
@@ -76,7 +76,7 @@ def repl(st: RepoState) -> None:
 
         # quit
         if cmd in ("quit", "q", "exit"):
-            console.print("[bold cyan]Goodbye. Don't fly too close to the sun.[/bold cyan]")
+            console.print("[bold cyan]Goodbye. Stay on the right side of the event horizon.[/bold cyan]")
             break
 
         # clear
