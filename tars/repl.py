@@ -47,9 +47,8 @@ def show_help() -> None:
 
     console.print(Panel(t, title="Commands", border_style=PRIMARY))
     console.print(
-        "  [dim]Config:[/dim] [white]~/.tarsrc[/white]  "
-        r"[dim]- set [white]\[theme][/white] colors, [white]\[behavior][/white] "
-        r"options, or [white]\[ai][/white] model (default: claude-opus-4-8)[/dim]"
+        r"  [dim]Config: [white]~/.tarsrc[/white] — \[theme] colors, "
+        r"\[behavior] options, \[ai] suggestions (enabled, model)[/dim]"
     )
 
 
