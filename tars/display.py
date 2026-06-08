@@ -4,8 +4,11 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from .config import get_int
 from .theme import console, PRIMARY, DIM, OK, WARN, ERR
 from .git import RepoState
+
+MAX_FILES = get_int("behavior", "max_files", 15)
 
 # banner
 
@@ -21,7 +24,7 @@ BANNER = r"""
 
 def show_banner() -> None:
     console.print()
-    console.print(Align.center(Text(BANNER, style="bold deep_sky_blue1")))
+    console.print(Align.center(Text(BANNER, style=f"bold {PRIMARY}")))
     console.print(Align.center(Text(
         "Humor: 75%  •  Honesty: 90%  •  Git: 100%",
         style=DIM,
@@ -111,10 +114,44 @@ def make_suggestions_panel(st: RepoState) -> Panel | None:
     return Panel(t, title="Suggestions", border_style=PRIMARY)
 
 
-def show_status(st: RepoState) -> None:
+def make_files_panel(st: RepoState) -> Panel | None:
+    """Return a full-width panel listing changed files by category, or None if clean."""
+    if st.error or not st.dirty:
+        return None
+
+    body = Text()
+    first = True
+
+    def add_section(label: str, files: list[str], icon: str, style: str) -> None:
+        nonlocal first
+        if not files:
+            return
+        if not first:
+            body.append("\n")
+        first = False
+        body.append(f"{label}\n", style=f"bold {DIM}")
+        for f in files[:MAX_FILES]:
+            body.append(f"  {icon} {f}\n", style=style)
+        if len(files) > MAX_FILES:
+            body.append(f"  … and {len(files) - MAX_FILES} more\n", style=DIM)
+
+    add_section("Staged",    st.staged_files,    "+", f"bold {OK}")
+    add_section("Unstaged",  st.unstaged_files,  "~", WARN)
+    add_section("Untracked", st.untracked_files, "?", DIM)
+
+    return Panel(body, title="Changes", border_style=PRIMARY)
+
+
+def show_status(st: RepoState, show_files: bool = False) -> None:
     repo_panel = make_repo_panel(st)
     sugg_panel = make_suggestions_panel(st)
+
     if sugg_panel:
         console.print(Columns([repo_panel, sugg_panel], equal=True, expand=True))
     else:
         console.print(repo_panel)
+
+    if show_files:
+        files_panel = make_files_panel(st)
+        if files_panel:
+            console.print(files_panel)

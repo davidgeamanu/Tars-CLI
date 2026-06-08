@@ -1,32 +1,35 @@
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 def run(cmd: list[str], cwd: str | None = None) -> tuple[int, str, str]:
     """Run a subprocess, return (exit_code, stdout, stderr)."""
     try:
         p = subprocess.run(cmd, cwd=cwd, text=True, capture_output=True)
-        return p.returncode, (p.stdout or "").strip(), (p.stderr or "").strip()
+        return p.returncode, (p.stdout or "").rstrip(), (p.stderr or "").strip()
     except FileNotFoundError:
         return 127, "", f"{cmd[0]!r} not found in PATH"
 
 
 @dataclass
 class RepoState:
-    path:        str
-    repo_root:   str | None  = None
-    branch:      str | None  = None
-    dirty:       bool        = False
-    staged:      int         = 0
-    unstaged:    int         = 0
-    untracked:   int         = 0
-    has_origin:  bool        = False
-    remote_url:  str | None  = None
-    upstream:    str | None  = None
-    ahead:       int | None  = None
-    behind:      int | None  = None
-    last_commit: str | None  = None
-    error:       str | None  = None
+    path:            str
+    repo_root:       str | None  = None
+    branch:          str | None  = None
+    dirty:           bool        = False
+    staged:          int         = 0
+    unstaged:        int         = 0
+    untracked:       int         = 0
+    staged_files:    list[str]   = field(default_factory=list)
+    unstaged_files:  list[str]   = field(default_factory=list)
+    untracked_files: list[str]   = field(default_factory=list)
+    has_origin:      bool        = False
+    remote_url:      str | None  = None
+    upstream:        str | None  = None
+    ahead:           int | None  = None
+    behind:          int | None  = None
+    last_commit:     str | None  = None
+    error:           str | None  = None
 
 
 def _to_https(url: str) -> str:
@@ -66,22 +69,34 @@ def detect_repo(path: str) -> RepoState:
         return st
 
     staged = unstaged = untracked = 0
+    staged_files: list[str] = []
+    unstaged_files: list[str] = []
+    untracked_files: list[str] = []
     for line in out.splitlines():
         if not line:
             continue
-        if line.startswith("??"):
+        x, y, path = line[0], line[1], line[3:]
+        if x == "?" and y == "?":
             untracked += 1
+            untracked_files.append(path)
         else:
-            x, y = line[0], line[1]
+            # renames: "old -> new" — display the new path
+            if " -> " in path:
+                path = path.split(" -> ")[-1]
             if x != " ":
                 staged += 1
+                staged_files.append(path)
             if y != " ":
                 unstaged += 1
+                unstaged_files.append(path)
 
-    st.staged    = staged
-    st.unstaged  = unstaged
-    st.untracked = untracked
-    st.dirty     = (staged + unstaged + untracked) > 0
+    st.staged          = staged
+    st.unstaged        = unstaged
+    st.untracked       = untracked
+    st.staged_files    = staged_files
+    st.unstaged_files  = unstaged_files
+    st.untracked_files = untracked_files
+    st.dirty           = (staged + unstaged + untracked) > 0
 
     code, remotes, _ = run(["git", "remote"], cwd=root)
     st.has_origin = code == 0 and "origin" in remotes.splitlines()

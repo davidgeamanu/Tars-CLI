@@ -64,7 +64,7 @@
 - `shlex`-based argument parsing — quoted commit messages work correctly
 - Repo state re-detected after every mutating command
 - Clickable remote URL in terminals that support hyperlinks
-- Colour palette editable in a single file
+- `~/.tarsrc` config file for colours and behaviour — no code edits needed
 
 </td>
 </tr>
@@ -97,7 +97,7 @@ pipx ensurepath
 #### 2. Clone or download TARS
 
 ```bash
-git clone https://github.com/your-username/tars.git
+git clone https://github.com/davidgeamanu/Tars-CLI.git
 cd tars
 ```
 
@@ -162,15 +162,25 @@ Navigate to any folder and run `tars`. You'll see:
 4. **Suggestions panel** with context-aware next steps
 5. The REPL prompt
 
+Type `files` at any point to see a colour-coded list of staged, unstaged, and untracked files.
+
 ---
 
 ### Commands
 
 | Command | Shorthand | Description |
 |---------|-----------|-------------|
-| `status` | `s` | Refresh and display repo status + suggestions |
-| `log` | `l` | `git log --oneline --decorate --graph -n 25` |
-| `diff [args]` | | `git diff` with optional extra arguments |
+| `status` | `s` | Refresh repo status + suggestions |
+| `files` | | Show changed / untracked file list |
+| `log [args]` | `l` | `git log` with graph and color |
+| `diff [args]` | | `git diff` with color |
+| `suggest` | `sg` | AI commit message suggestions (needs `ANTHROPIC_API_KEY`) |
+| `stage [files]` | | `git add` (defaults to `.` for all) |
+| `unstage <files>` | | `git restore --staged <files>` |
+| `stash [msg]` | | Stash working changes with optional message |
+| `stash list` | | List all stashes |
+| `stash drop [n]` | | Drop a stash entry (default: latest) |
+| `pop` | | `git stash pop` |
 | `fetch` | `f` | `git fetch --all --prune` |
 | `pull [args]` | | `git pull --ff-only` (default) |
 | `push [args]` | | `git push` |
@@ -227,19 +237,53 @@ Each section is a two-column table of commands and plain-English descriptions. S
 
 ## Customisation
 
-### Colours
+Create `~/.tarsrc` (INI format) to override colours or behaviour without touching the source:
 
-All colours are defined at the top of `tars/theme.py`:
+```ini
+[theme]
+primary = deep_sky_blue1   # panels, borders, banner
+ok      = green            # CLEAN status
+warn    = yellow           # DIRTY status
+err     = red              # errors, not-a-repo panel
+dim     = dim              # labels, secondary text
 
-```python
-PRIMARY = "cyan"    # panels, borders, banner
-DIM     = "dim"     # labels, secondary text
-OK      = "green"   # CLEAN status
-WARN    = "yellow"  # DIRTY status
-ERR     = "red"     # errors, not-a-repo panel
+[behavior]
+max_files     = 15         # max files shown per category in 'files' command
+log_count     = 25         # number of commits shown by 'log'
+pull_strategy = ff-only    # default pull flag (ff-only | rebase | no-rebase)
+
+[ai]
+enabled = false            # set to true to enable AI commit suggestions (opt-in)
+model   = claude-haiku-4-5  # default; use claude-opus-4-8 for more complex diffs
 ```
 
-Rich accepts named colours (`"magenta"`), hex (`"#a855f7"`), or RGB (`"rgb(100,200,255)"`). Change the values and run `pipx reinstall tars`.
+Rich accepts named colours (`magenta`), hex (`#a855f7`), or RGB (`rgb(100,200,255)`). Changes to `~/.tarsrc` take effect the next time you run `tars` — no reinstall needed.
+
+### AI commit suggestions
+
+The `suggest` command calls the Claude API to analyse your staged diff and propose three [Conventional Commit](https://www.conventionalcommits.org/) messages. Pick a number to commit immediately, or press Enter to skip.
+
+AI suggestions are **opt-in** — nothing runs until you enable them in `~/.tarsrc`.
+
+**Setup:**
+
+1. Get an API key from [console.anthropic.com](https://console.anthropic.com) (separate from a Claude Pro subscription - the API has its own billing, pay-as-you-go).
+2. Install the SDK and set your key:
+
+```bash
+pip install anthropic          # or: pipx inject tars anthropic
+export ANTHROPIC_API_KEY=sk-…  # add to your shell profile to persist it
+```
+
+3. Enable in `~/.tarsrc`:
+
+```ini
+[ai]
+enabled = true
+model   = claude-haiku-4-5    # default; use claude-opus-4-8 for more complex diffs
+```
+
+To disable without removing the key, set `enabled = false` (or omit the key entirely — the default is disabled).
 
 ---
 
@@ -248,14 +292,17 @@ Rich accepts named colours (`"magenta"`), hex (`"#a855f7"`), or RGB (`"rgb(100,2
 ```
 tars/
 ├── __init__.py       — package marker
+├── config.py         — ~/.tarsrc reader (colours + behaviour overrides)
 ├── theme.py          — console instance + colour constants
 ├── git.py            — RepoState dataclass, detect_repo(), git helpers
-├── display.py        — ASCII banner, repo panel, suggestions panel
+├── display.py        — ASCII banner, repo/suggestions/files panels
 ├── cookbook.py       — COOKBOOK data + menu/section display functions
 ├── repl.py           — REPL loop, command dispatch, show_help()
+├── ai.py             — Claude-powered commit message suggestions
 └── cli.py            — main() entry point, UTF-8 setup
 tars.py               — shim so 'python tars.py' still works
 setup.py              — package config and 'tars' console script
+~/.tarsrc             — optional user config (colours, behaviour)
 .gitignore
 ```
 
