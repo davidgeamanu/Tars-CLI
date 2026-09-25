@@ -1,12 +1,14 @@
 import os
 import shlex
-import subprocess
 
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 
+from . import actions
 from .config import get, get_int
-from .theme import console, PRIMARY, DIM, ERR
+from .theme import console, PRIMARY, DIM, OK, ERR
 from .git import RepoState, detect_repo
 from .display import show_status
 from .cookbook import show_cookbook_menu, show_cookbook_section, show_cookbook_all
@@ -28,7 +30,7 @@ def show_help() -> None:
     t.add_row("log",           "l [args]",     "Git log with graph and color")
     t.add_row("diff",          "[args]",       "Git diff with color")
     t.add_row("stage",         "[files]",      "git add (defaults to . for all)")
-    t.add_row("unstage",       "<files>",      "git restore --staged <files>")
+    t.add_row("unstage",       "<files>",      "Unstage files, keeping your edits")
     t.add_row("stash",         "[msg]",        "Stash working changes with optional message")
     t.add_row("stash list",    "",             "List all stashes")
     t.add_row("stash drop",    "[n]",          "Drop stash entry (default: latest)")
@@ -57,14 +59,74 @@ def _prompt(st: RepoState | None) -> str:
     return f"tars{branch} > "
 
 
+def _found_differences(result: actions.Result) -> bool:
+    # git diff exits with 1 when it finds differences (always, with --no-index); not an error
+    return result.code == 1 and result.failed is not None and result.failed.argv[:2] == ["git", "diff"]
+
+
+def run_steps(steps: list[actions.Step], cwd: str | None) -> None:
+    """Run *steps* with stdio inherited so output streams live to the terminal."""
+    result = actions.run(steps, cwd, capture=False)
+    if result.err:
+        console.print(f"[{ERR}]{escape(result.err)}[/{ERR}]")
+    elif not result.ok and not _found_differences(result):
+        console.print(f"[{ERR}]Exit code {result.code}[/{ERR}]")
+
+
 def run_passthrough(cmd: list[str], cwd: str | None) -> None:
-    """Run *cmd* with stdio inherited so output streams live to the terminal."""
+    run_steps([actions.Step(cmd, "")], cwd)
+
+
+def _hint_new_files(paths: list[str], cwd: str) -> None:
+    """git diff shows nothing for an untracked file, so say why and show the command that does."""
+    st = detect_repo(cwd)
+    if st.error:
+        return
+    for path in paths:
+        if st.is_untracked(path) and os.path.isfile(os.path.join(cwd, path)):
+            console.print(
+                f"[{DIM}]{escape(path)} is untracked, so git diff has nothing to compare it with. "
+                f"To see it as a diff, type:[/{DIM}]"
+            )
+            console.print(f"  [bold white]{escape(actions.show_new_file(path).shown())}[/bold white]")
+
+
+def suggest_and_commit(cwd: str) -> None:
+    """Show AI commit messages and commit with the one you pick."""
+    from .ai import SuggestError, commit_suggestions
+
     try:
-        result = subprocess.run(cmd, cwd=cwd)
-        if result.returncode != 0:
-            console.print(f"[{ERR}]Exit code {result.returncode}[/{ERR}]")
-    except FileNotFoundError:
-        console.print(f"[{ERR}]Command not found: {cmd[0]!r}[/{ERR}]")
+        with console.status(f"[{DIM}]Asking Claude for suggestions…[/{DIM}]", spinner="dots"):
+            suggestions = commit_suggestions(cwd)
+    except SuggestError as e:
+        console.print(str(e))
+        return
+
+    body = Text()
+    for i, s in enumerate(suggestions, 1):
+        body.append(f"  {i}. ", style=f"bold {PRIMARY}")
+        body.append(s + "\n")
+    console.print(Panel(body, title="Suggested Commit Messages", border_style=PRIMARY))
+
+    try:
+        choice = input(
+            f"  Pick 1-{len(suggestions)} to commit, or Enter to skip: "
+        ).strip()
+    except (EOFError, KeyboardInterrupt):
+        console.print()
+        return
+
+    if not choice:
+        return
+
+    idx = int(choice) - 1 if choice.isdigit() else -1
+    if not 0 <= idx < len(suggestions):
+        console.print(f"[{ERR}]Invalid choice.[/{ERR}]")
+        return
+
+    msg = suggestions[idx]
+    if actions.run(actions.commit(msg), cwd, capture=False).ok:
+        console.print(f"[{OK}]Committed:[/{OK}] {escape(msg)}")
 
 
 def repl(st: RepoState) -> None:
@@ -126,11 +188,12 @@ def repl(st: RepoState) -> None:
         # diff
         elif cmd == "diff":
             run_passthrough(["git", "diff", "--color=always"] + args, cwd=cwd)
+            if args:
+                _hint_new_files(args, cwd)
 
         # stage
         elif cmd == "stage":
-            targets = args if args else ["."]
-            run_passthrough(["git", "add"] + targets, cwd=cwd)
+            run_steps(actions.stage(args), cwd)
             st = detect_repo(os.getcwd())
             show_status(st)
 
@@ -139,55 +202,52 @@ def repl(st: RepoState) -> None:
             if not args:
                 console.print(f"[{ERR}]Usage: unstage <file> … (or unstage . to unstage all)[/{ERR}]")
             else:
-                run_passthrough(["git", "restore", "--staged"] + args, cwd=cwd)
+                run_steps(actions.unstage(st, args), cwd)
                 st = detect_repo(os.getcwd())
                 show_status(st)
 
         # suggest — AI commit message
         elif cmd in ("suggest", "sg"):
-            from .ai import suggest_commit
-            suggest_commit(cwd)
+            suggest_and_commit(cwd)
             st = detect_repo(os.getcwd())
             show_status(st)
 
         # stash
         elif cmd == "stash":
             if not args:
-                run_passthrough(["git", "stash", "push"], cwd=cwd)
+                run_steps(actions.stash_push(), cwd)
                 st = detect_repo(os.getcwd())
                 show_status(st)
             elif args[0] == "list":
                 run_passthrough(["git", "stash", "list", "--color=always"], cwd=cwd)
             elif args[0] == "drop":
-                drop_args = [f"stash@{{{args[1]}}}"] if len(args) > 1 else []
-                run_passthrough(["git", "stash", "drop"] + drop_args, cwd=cwd)
+                run_steps(actions.stash_drop(args[1] if len(args) > 1 else None), cwd)
             else:
-                run_passthrough(["git", "stash", "push", "-m", " ".join(args)], cwd=cwd)
+                run_steps(actions.stash_push(" ".join(args)), cwd)
                 st = detect_repo(os.getcwd())
                 show_status(st)
 
         # pop
         elif cmd == "pop":
-            run_passthrough(["git", "stash", "pop"] + args, cwd=cwd)
+            run_steps(actions.stash_pop(args), cwd)
             st = detect_repo(os.getcwd())
             show_status(st)
 
         # fetch
         elif cmd in ("fetch", "f"):
-            run_passthrough(["git", "fetch", "--all", "--prune"] + args, cwd=cwd)
+            run_steps(actions.fetch(args), cwd)
             st = detect_repo(os.getcwd())
             show_status(st)
 
         # pull
         elif cmd == "pull":
-            pull_args = args if args else [f"--{PULL_STRATEGY}"]
-            run_passthrough(["git", "pull"] + pull_args, cwd=cwd)
+            run_steps(actions.pull(args, PULL_STRATEGY), cwd)
             st = detect_repo(os.getcwd())
             show_status(st)
 
         # push
         elif cmd == "push":
-            run_passthrough(["git", "push"] + args, cwd=cwd)
+            run_steps(actions.push(args), cwd)
             st = detect_repo(os.getcwd())
             show_status(st)
 

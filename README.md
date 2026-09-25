@@ -11,7 +11,7 @@
 
 ### A REPL-style CLI git assistant that keeps you oriented in any repository.
 
-[![Python](https://img.shields.io/badge/Python-3.9+-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 
 
 [Features](#features) •
@@ -80,7 +80,7 @@
 
 | Tool | Version |
 |------|---------|
-| **Python** | 3.9+ |
+| **Python** | 3.10+ |
 | **pipx** | any |
 
 ### Installation
@@ -176,7 +176,7 @@ Type `files` at any point to see a colour-coded list of staged, unstaged, and un
 | `diff [args]` | | `git diff` with color |
 | `suggest` | `sg` | AI commit message suggestions (needs `ANTHROPIC_API_KEY`) |
 | `stage [files]` | | `git add` (defaults to `.` for all) |
-| `unstage <files>` | | `git restore --staged <files>` |
+| `unstage <files>` | | `git restore --staged <files>` (`git reset -- <files>` before the first commit) |
 | `stash [msg]` | | Stash working changes with optional message |
 | `stash list` | | List all stashes |
 | `stash drop [n]` | | Drop a stash entry (default: latest) |
@@ -287,6 +287,27 @@ To disable without removing the key, set `enabled = false` (or omit the key enti
 
 ---
 
+## Development
+
+Install TARS into a virtual environment in editable mode, with the test tools:
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate          # Windows
+# source .venv/bin/activate     # macOS / Linux
+pip install -e ".[dev]"
+```
+
+Run the tests from the project folder:
+
+```bash
+pytest
+```
+
+The tests build throwaway git repos in a temp folder and never read your own `~/.tarsrc` or git config.
+
+---
+
 ## Project Structure
 
 ```
@@ -295,13 +316,16 @@ tars/
 ├── config.py         — ~/.tarsrc reader (colours + behaviour overrides)
 ├── theme.py          — console instance + colour constants
 ├── git.py            — RepoState dataclass, detect_repo(), git helpers
+├── actions.py        — git actions as commands to show or run (shared by every interface)
 ├── display.py        — ASCII banner, repo/suggestions/files panels
 ├── cookbook.py       — COOKBOOK data + menu/section display functions
 ├── repl.py           — REPL loop, command dispatch, show_help()
 ├── ai.py             — Claude-powered commit message suggestions
 └── cli.py            — main() entry point, UTF-8 setup
+tests/                — pytest suite (git parsing, actions, AI parsing)
 tars.py               — shim so 'python tars.py' still works
 setup.py              — package config and 'tars' console script
+pytest.ini            — test settings
 ~/.tarsrc             — optional user config (colours, behaviour)
 .gitignore
 ```
