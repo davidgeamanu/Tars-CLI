@@ -1,0 +1,45 @@
+# Publishes a release when you push a version tag such as v2.1.0:
+# runs the tests, builds the Windows zip, and creates a GitHub Release with the zip and
+# install.ps1 attached. The one-line install always downloads from the latest release.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write   # lets the workflow create the release
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Run the tests
+        run: |
+          python -m pip install -e ".[dev]"
+          python -m pytest
+
+      - name: Check the tag matches the version in tars/__init__.py
+        run: |
+          $version = python -c "import tars; print(tars.__version__)"
+          if ("v$version" -ne "${{ github.ref_name }}") {
+            throw "Tag ${{ github.ref_name }} doesn't match tars.__version__ ($version)"
+          }
+
+      - name: Build and test-install the Windows zip
+        run: ./packaging/build.ps1
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "${{ github.ref_name }}"
+          dist/tars-windows-x64.zip packaging/install.ps1
+          --title "TARS ${{ github.ref_name }}"
+          --generate-notes

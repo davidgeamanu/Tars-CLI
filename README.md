@@ -76,14 +76,28 @@
 
 ## Getting Started
 
-### Prerequisites
+### Install on Windows
+
+You need [Git](https://git-scm.com/download/win). You don't need Python: TARS brings its own copy.
+
+Open PowerShell or Command Prompt and run:
+
+```bash
+powershell -ExecutionPolicy Bypass -c "irm https://github.com/davidgeamanu/Tars-CLI/releases/latest/download/install.ps1 | iex"
+```
+
+This installs TARS for your user only (no admin prompt) into `%LOCALAPPDATA%\Programs\TARS` and adds it to your PATH. Open a new terminal and type `tars` in any folder. You can also give it a folder: `tars C:\path\to\repo`.
+
+Run the same command again to update. To uninstall, go to **Settings > Apps > Installed apps > TARS > Uninstall**.
+
+TARS runs on python.org's signed `python.exe`, so it works with Windows Smart App Control turned on.
+
+### Install from source (any OS)
 
 | Tool | Version |
 |------|---------|
 | **Python** | 3.10+ |
 | **pipx** | any |
-
-### Installation
 
 #### 1. Install pipx (if you don't have it)
 
@@ -127,10 +141,10 @@ pipx install . --editable
 #### 4. Verify the install
 
 ```bash
-tars --help
+tars --version
 ```
 
-If the command is found, you're done.
+If it prints the version, you're done.
 
 #### 5. Run
 
@@ -268,10 +282,10 @@ AI suggestions are **opt-in** — nothing runs until you enable them in `~/.tars
 **Setup:**
 
 1. Get an API key from [console.anthropic.com](https://console.anthropic.com) (separate from a Claude Pro subscription - the API has its own billing, pay-as-you-go).
-2. Install the SDK and set your key:
+2. Set your key, and if you installed from source, install the SDK (the Windows install already includes it):
 
 ```bash
-pip install anthropic          # or: pipx inject tars anthropic
+pip install anthropic          # source installs only; or: pipx inject tars anthropic
 export ANTHROPIC_API_KEY=sk-…  # add to your shell profile to persist it
 ```
 
@@ -306,6 +320,20 @@ pytest
 
 The tests build throwaway git repos in a temp folder and never read your own `~/.tarsrc` or git config.
 
+### Building the Windows install
+
+```bash
+powershell -ExecutionPolicy Bypass -File packaging\build.ps1
+```
+
+This creates `dist\tars-windows-x64.zip` (python.org's embeddable Python with TARS inside) and test-installs it into `build\test-install`. To install your build for real:
+
+```bash
+powershell -ExecutionPolicy Bypass -File packaging\install.ps1 -ZipFile dist\tars-windows-x64.zip
+```
+
+Releases are built by GitHub Actions (`.github/workflows/release.yml`) when a version tag such as `v2.1.0` is pushed. The tag must match `__version__` in `tars/__init__.py`.
+
 ---
 
 ## Project Structure
@@ -322,7 +350,13 @@ tars/
 ├── repl.py           — REPL loop, command dispatch, show_help()
 ├── ai.py             — Claude-powered commit message suggestions
 └── cli.py            — main() entry point, UTF-8 setup
-tests/                — pytest suite (git parsing, actions, AI parsing)
+tests/                — pytest suite (git parsing, actions, AI parsing, command line)
+packaging/
+├── build.ps1         — builds the Windows zip and test-installs it
+├── install.ps1       — the one-line installer (also attached to each release)
+└── uninstall.ps1     — run by Settings > Apps > Uninstall
+.github/workflows/
+└── release.yml       — builds and publishes a release when a version tag is pushed
 tars.py               — shim so 'python tars.py' still works
 setup.py              — package config and 'tars' console script
 pytest.ini            — test settings
