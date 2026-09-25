@@ -78,10 +78,10 @@ def make_repo_panel(st: RepoState) -> Panel:
     return Panel(t, title="Repository", border_style=PRIMARY)
 
 
-def make_suggestions_panel(st: RepoState) -> Panel | None:
-    """Return a suggestions panel, or None if there is nothing to suggest."""
+def suggestions(st: RepoState) -> list[tuple[str, str]]:
+    """What to do next, as (command, what it does) pairs. Empty when there's nothing to suggest."""
     if st.error:
-        return None
+        return []
 
     items = []
 
@@ -102,6 +102,12 @@ def make_suggestions_panel(st: RepoState) -> Panel | None:
         elif ahead > 0 and behind > 0:
             items.append(("git pull --rebase  then  git push",  "diverged — rebase, then push"))
 
+    return items
+
+
+def make_suggestions_panel(st: RepoState) -> Panel | None:
+    """Return a suggestions panel, or None if there is nothing to suggest."""
+    items = suggestions(st)
     if not items:
         return None
 
@@ -140,6 +146,37 @@ def make_files_panel(st: RepoState) -> Panel | None:
     add_section("Untracked", st.untracked_files, "?", DIM)
 
     return Panel(body, title="Changes", border_style=PRIMARY)
+
+
+def make_help_panel(pull_strategy: str) -> Panel:
+    t = Table(show_header=False, box=None, pad_edge=False, padding=(0, 3))
+    t.add_column(style="bold white", no_wrap=True)   # command
+    t.add_column(style="cyan",       no_wrap=True)   # shorthand / args
+    t.add_column(style=DIM)                           # description
+
+    t.add_row("status",        "s",            "Refresh repo status")
+    t.add_row("files",         "",             "Show changed / untracked file list")
+    t.add_row("log",           "l [args]",     "Git log with graph and color")
+    t.add_row("diff",          "[args]",       "Git diff with color")
+    t.add_row("stage",         "[files]",      "git add (defaults to . for all)")
+    t.add_row("unstage",       "<files>",      "Unstage files, keeping your edits")
+    t.add_row("stash",         "[msg]",        "Stash working changes with optional message")
+    t.add_row("stash list",    "",             "List all stashes")
+    t.add_row("stash drop",    "[n]",          "Drop stash entry (default: latest)")
+    t.add_row("pop",           "",             "Pop latest stash")
+    t.add_row("suggest",       "sg",           "AI commit message suggestions (enable in ~/.tarsrc [ai])")
+    t.add_row("fetch",         "f",            "git fetch --all --prune")
+    t.add_row("pull",          "[args]",       f"git pull (default: --{pull_strategy})")
+    t.add_row("push",          "[args]",       "git push")
+    t.add_row("cookbook",      "cb [n]",       "Browse numbered cookbook menu")
+    t.add_row("cookbook all",  "",             "Show all cookbook sections")
+    t.add_row("<number>",      "",             "Shortcut for cookbook <number>")
+    t.add_row("git",           "<args>",       "Pass any git command through directly")
+    t.add_row("clear",         "",             "Clear the screen")
+    t.add_row("help",          "?",            "Show this help")
+    t.add_row("quit",          "q / exit",     "Exit TARS")
+
+    return Panel(t, title="Commands", border_style=PRIMARY)
 
 
 def show_status(st: RepoState, show_files: bool = False) -> None:

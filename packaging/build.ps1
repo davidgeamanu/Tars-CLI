@@ -96,5 +96,6 @@ Remove-Item -Recurse -Force $test -ErrorAction SilentlyContinue
 $null = "q" | & "$test\tars.exe" $env:TEMP     # draws the banner and panels, then quits
 if ($LASTEXITCODE -ne 0) { throw "TARS failed to start from the test install" }
 Run "$test\python\python.exe" -c "import anthropic"    # AI suggestions have their library
+Run "$test\python\python.exe" -c "import tars.tui"     # the board and Textual load
 
 Write-Host "Built $zip"

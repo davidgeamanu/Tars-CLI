@@ -14,7 +14,7 @@ setup(
     version=VERSION,
     packages=find_packages(exclude=["tests"]),
     python_requires=">=3.10",
-    install_requires=["rich>=13.0"],
+    install_requires=["rich>=13.0", "textual>=8.2,<9"],
     extras_require={
         "ai": ["anthropic>=0.50.0"],
         "dev": ["pytest"],

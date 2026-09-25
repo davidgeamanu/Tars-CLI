@@ -7,7 +7,7 @@ import shlex
 import subprocess
 from dataclasses import dataclass
 
-from .git import RepoState, run as run_captured
+from .git import RepoState, git_lock, run as run_captured
 
 
 @dataclass
@@ -30,6 +30,11 @@ class Result:
     @property
     def ok(self) -> bool:
         return self.code == 0
+
+    @property
+    def found_differences(self) -> bool:
+        """git diff exits with 1 when it finds differences (always, with --no-index): not an error."""
+        return self.code == 1 and self.failed is not None and self.failed.argv[:2] == ["git", "diff"]
 
 
 def pathspec(paths: list[str]) -> list[str]:
@@ -86,6 +91,18 @@ def commit(message: str) -> list[Step]:
     return [Step(["git", "commit", "-m", message], "commit staged changes")]
 
 
+def discard(args: list[str]) -> list[Step]:
+    return [Step(["git", "restore", *args], "throw away your edits")]
+
+
+# views
+
+def diff(args: list[str], staged: bool = False) -> Step:
+    if staged:
+        return Step(["git", "diff", "--staged", *args], "see what's staged")
+    return Step(["git", "diff", *args], "see what changed")
+
+
 def show_new_file(path: str) -> Step:
     """git diff shows nothing for an untracked file; this shows it as all-new lines."""
     return Step(["git", "diff", "--no-index", "--", "/dev/null", path], "see a new file as a diff")
@@ -93,20 +110,23 @@ def show_new_file(path: str) -> Step:
 
 # running
 
-def run(steps: list[Step], cwd: str | None, *, capture: bool = True) -> Result:
+def run(steps: list[Step], cwd: str | None, *, capture: bool = True,
+        env: dict[str, str] | None = None) -> Result:
     """Run *steps* in order and stop at the first failure. Never prints.
 
     With capture=False git inherits the terminal, so output streams live and git can
-    ask for credentials; the Result then only carries the exit code.
+    ask for credentials; the Result then only carries the exit code. *env* adds
+    environment variables to captured runs.
     """
     outs: list[str] = []
     errs: list[str] = []
     for step in steps:
         if capture:
-            code, out, err = run_captured(step.argv, cwd=cwd)
+            code, out, err = run_captured(step.argv, cwd=cwd, env=env)
         else:
             try:
-                code, out, err = subprocess.run(step.argv, cwd=cwd).returncode, "", ""
+                with git_lock:
+                    code, out, err = subprocess.run(step.argv, cwd=cwd).returncode, "", ""
             except FileNotFoundError:
                 code, out, err = 127, "", f"{step.argv[0]!r} not found in PATH"
         if out:

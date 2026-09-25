@@ -24,6 +24,8 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument("folder", nargs="?",
                         help="folder to open (default: the current folder)")
+    parser.add_argument("--tui", action="store_true",
+                        help="open the board, the full-screen interface (preview)")
     parser.add_argument("--version", action="version", version=f"tars {__version__}")
     args = parser.parse_args()
     if args.folder and not os.path.isdir(args.folder):
@@ -35,6 +37,11 @@ def main() -> None:
     args = _parse_args()
     if args.folder:
         os.chdir(args.folder)
+
+    if args.tui:
+        from .tui import run_tui   # the classic prompt never loads Textual
+        run_tui()
+        return
 
     console.clear()
     show_banner()

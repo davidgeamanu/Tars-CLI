@@ -1,14 +1,23 @@
+import os
 import posixpath
 import subprocess
+import threading
 from dataclasses import dataclass, field
 
+# One git command at a time. The board refreshes on a background thread, and two git
+# commands touching the index at once make one of them fail on index.lock.
+git_lock = threading.Lock()
 
-def run(cmd: list[str], cwd: str | None = None) -> tuple[int, str, str]:
-    """Run a subprocess, return (exit_code, stdout, stderr)."""
+
+def run(cmd: list[str], cwd: str | None = None,
+        env: dict[str, str] | None = None) -> tuple[int, str, str]:
+    """Run a subprocess, return (exit_code, stdout, stderr). It never waits for input."""
     try:
-        # git writes paths as UTF-8; the Windows default code page would garble them
-        p = subprocess.run(cmd, cwd=cwd, capture_output=True,
-                           text=True, encoding="utf-8", errors="replace")
+        with git_lock:
+            # git writes paths as UTF-8; the Windows default code page would garble them
+            p = subprocess.run(cmd, cwd=cwd, capture_output=True, stdin=subprocess.DEVNULL,
+                               text=True, encoding="utf-8", errors="replace",
+                               env={**os.environ, **env} if env else None)
         return p.returncode, (p.stdout or "").rstrip(), (p.stderr or "").strip()
     except FileNotFoundError:
         return 127, "", f"{cmd[0]!r} not found in PATH"
@@ -27,6 +36,7 @@ class RepoState:
     staged_files:    list[str]   = field(default_factory=list)
     unstaged_files:  list[str]   = field(default_factory=list)
     untracked_files: list[str]   = field(default_factory=list)
+    codes:           dict[str, str] = field(default_factory=dict)   # path -> git's two-letter status
     has_origin:      bool        = False
     remote_url:      str | None  = None
     upstream:        str | None  = None
@@ -44,16 +54,19 @@ class RepoState:
         )
 
 
-def _parse_status(out: str) -> tuple[list[str], list[str], list[str]]:
-    """Split `git status --porcelain -z` output into (staged, unstaged, untracked) paths."""
+def _parse_status(out: str) -> tuple[list[str], list[str], list[str], dict[str, str]]:
+    """Split `git status --porcelain -z` output into staged, unstaged and untracked paths,
+    plus each path's two-letter status code."""
     staged: list[str] = []
     unstaged: list[str] = []
     untracked: list[str] = []
+    codes: dict[str, str] = {}
     fields = iter(out.split("\0"))
     for entry in fields:
         if not entry:
             continue
         x, y, path = entry[0], entry[1], entry[3:]
+        codes[path] = x + y
         if x in "RC" or y in "RC":
             next(fields, None)  # -z gives a rename's old path as its own field
         if x == "?" and y == "?":
@@ -63,7 +76,7 @@ def _parse_status(out: str) -> tuple[list[str], list[str], list[str]]:
             staged.append(path)
         if y != " ":
             unstaged.append(path)
-    return staged, unstaged, untracked
+    return staged, unstaged, untracked, codes
 
 
 def _to_https(url: str) -> str:
@@ -100,13 +113,16 @@ def detect_repo(path: str) -> RepoState:
     code, _, _ = run(["git", "rev-parse", "--verify", "-q", "HEAD"], cwd=root)
     st.has_commits = code == 0
 
-    # -z: paths come unquoted, so they can be passed straight back to git
-    code, out, err = run(["git", "status", "--porcelain", "-z"], cwd=root)
+    # -z: paths come unquoted, so they can be passed straight back to git.
+    # GIT_OPTIONAL_LOCKS=0: don't take the index lock just to refresh it, so a status check
+    # never blocks a command you run at the same moment.
+    code, out, err = run(["git", "status", "--porcelain", "-z"], cwd=root,
+                         env={"GIT_OPTIONAL_LOCKS": "0"})
     if code != 0:
         st.error = err or "Failed to read status."
         return st
 
-    staged_files, unstaged_files, untracked_files = _parse_status(out)
+    staged_files, unstaged_files, untracked_files, st.codes = _parse_status(out)
 
     st.staged          = len(staged_files)
     st.unstaged        = len(unstaged_files)

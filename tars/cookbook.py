@@ -123,29 +123,45 @@ COOKBOOK: list[tuple[str, str, list[tuple[str, str]]]] = [
 ]
 
 
-def show_cookbook_menu() -> None:
+def make_cookbook_menu() -> Panel:
     t = Table(show_header=False, box=None, pad_edge=False)
     t.add_column(style="bold cyan", justify="right", no_wrap=True)
     t.add_column(style="bold white")
     t.add_column(style=DIM)
     for i, (title, desc, _) in enumerate(COOKBOOK, 1):
         t.add_row(f"[{i}]", title, f"— {desc}")
-    console.print(Panel(t, title="Git Cookbook", border_style=PRIMARY))
-    console.print(Text("  Type a number to open a section.", style=DIM))
-    console.print()
+    return Panel(t, title="Git Cookbook", border_style=PRIMARY)
 
 
-def show_cookbook_section(n: int) -> None:
+def make_cookbook_section(n: int) -> Panel | None:
+    """The panel for section *n*, or None if there is no such section."""
     if not (1 <= n <= len(COOKBOOK)):
-        console.print(f"[{ERR}]No section {n}. Choose 1–{len(COOKBOOK)}.[/{ERR}]")
-        return
+        return None
     title, desc, rows = COOKBOOK[n - 1]
     t = Table(show_header=True, header_style="bold cyan")
     t.add_column("Command", style="bold white", no_wrap=True)
     t.add_column("What it does", style=DIM)
     for cmd, what in rows:
         t.add_row(cmd, what)
-    console.print(Panel(t, title=f"[{n}] {title}", subtitle=desc, border_style=PRIMARY))
+    return Panel(t, title=f"[{n}] {title}", subtitle=desc, border_style=PRIMARY)
+
+
+def no_section_message(n: int) -> str:
+    return f"No section {n}. Choose 1–{len(COOKBOOK)}."
+
+
+def show_cookbook_menu() -> None:
+    console.print(make_cookbook_menu())
+    console.print(Text("  Type a number to open a section.", style=DIM))
+    console.print()
+
+
+def show_cookbook_section(n: int) -> None:
+    panel = make_cookbook_section(n)
+    if panel is None:
+        console.print(f"[{ERR}]{no_section_message(n)}[/{ERR}]")
+        return
+    console.print(panel)
 
 
 def show_cookbook_all() -> None:

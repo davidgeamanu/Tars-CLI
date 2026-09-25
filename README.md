@@ -210,6 +210,24 @@ Type `files` at any point to see a colour-coded list of staged, unstaged, and un
 
 ---
 
+### The board (preview)
+
+```bash
+tars --tui
+```
+
+A full-screen view that stays in place instead of scrolling. Your changes sit in three columns, **Untracked**, **Unstaged** and **Staged**, and the board redraws after every command.
+
+- `←` `→` (or `h` `l`) move between columns, `↑` `↓` (or `j` `k`) between files.
+- Under the columns, the board shows the git commands for the selected file, like `git add notes.txt` or `git restore --staged notes.txt`. Nothing is run for you: press `:` and type the command yourself.
+- The command bar accepts everything the classic prompt does. Output appears in a pane above it; `Esc` leaves the command bar, and `Esc` again hides the output.
+- Commands that need your terminal, like `git push` or `git commit` without `-m`, take over the screen until they finish, then wait for Enter before the board comes back.
+- `r` refreshes, `q` quits.
+
+The classic prompt is still the default while the board matures.
+
+---
+
 ### Status Panel
 
 When inside a git repository the status panel shows:
@@ -346,12 +364,14 @@ tars/
 ├── theme.py          — console instance + colour constants
 ├── git.py            — RepoState dataclass, detect_repo(), git helpers
 ├── actions.py        — git actions as commands to show or run (shared by every interface)
+├── commands.py       — what a typed line means (shared by the prompt and the board)
+├── tui.py            — the board (tars --tui)
 ├── display.py        — ASCII banner, repo/suggestions/files panels
 ├── cookbook.py       — COOKBOOK data + menu/section display functions
 ├── repl.py           — REPL loop, command dispatch, show_help()
 ├── ai.py             — Claude-powered commit message suggestions
 └── cli.py            — main() entry point, UTF-8 setup
-tests/                — pytest suite (git parsing, actions, AI parsing, command line)
+tests/                — pytest suite (git parsing, actions, commands, the board, command line)
 packaging/
 ├── build.ps1         — builds the Windows zip and test-installs it
 ├── install.ps1       — the one-line installer (also attached to each release)
