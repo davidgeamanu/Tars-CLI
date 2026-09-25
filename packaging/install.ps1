@@ -61,7 +61,10 @@ function Install-Tars {
         }
 
         Write-Host "Installing into $InstallDir"
-        Expand-Archive -Path $ZipFile -DestinationPath $InstallDir
+        # .NET's unzip rather than Expand-Archive: about 5x faster, and Expand-Archive ignores
+        # $ProgressPreference set inside a function, so it draws a progress bar
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        [IO.Compression.ZipFile]::ExtractToDirectory($ZipFile, $InstallDir)
         $version = (Get-Content (Join-Path $InstallDir "tars-version.txt")).Trim()
 
         # tars.exe is pip's standard launcher stub, followed by a line naming the python.exe to
