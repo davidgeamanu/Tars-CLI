@@ -1,0 +1,35 @@
+# Runs the tests on every push to dev or main, and on pull requests into main.
+# GitHub shows the result as a check or a cross next to each commit.
+name: Tests
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false   # finish every setup, so one failure doesn't hide another
+      matrix:
+        include:
+          - { os: windows-latest, python: "3.14" }
+          - { os: windows-latest, python: "3.10" }   # the oldest Python setup.py allows
+          - { os: ubuntu-latest,  python: "3.14" }   # source installs on Linux and macOS
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }}, Python ${{ matrix.python }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Run the tests
+        run: |
+          python -m pip install -e ".[dev]"
+          python -m pytest

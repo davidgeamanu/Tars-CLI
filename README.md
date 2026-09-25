@@ -12,6 +12,7 @@
 ### A REPL-style CLI git assistant that keeps you oriented in any repository.
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Tests](https://img.shields.io/github/actions/workflow/status/davidgeamanu/Tars-CLI/ci.yml?branch=main&label=Tests&style=for-the-badge&logo=github)](https://github.com/davidgeamanu/Tars-CLI/actions/workflows/ci.yml)
 
 
 [Features](#features) •
@@ -318,7 +319,7 @@ Run the tests from the project folder:
 pytest
 ```
 
-The tests build throwaway git repos in a temp folder and never read your own `~/.tarsrc` or git config.
+The tests build throwaway git repos in a temp folder and never read your own `~/.tarsrc` or git config. GitHub Actions also runs them on every push to `dev` and `main` (`.github/workflows/ci.yml`), on Windows with Python 3.10 and 3.14 and on Linux.
 
 ### Building the Windows install
 
@@ -356,6 +357,7 @@ packaging/
 ├── install.ps1       — the one-line installer (also attached to each release)
 └── uninstall.ps1     — run by Settings > Apps > Uninstall
 .github/workflows/
+├── ci.yml            — runs the tests on every push to dev and main
 └── release.yml       — builds and publishes a release when a version tag is pushed
 tars.py               — shim so 'python tars.py' still works
 setup.py              — package config and 'tars' console script
